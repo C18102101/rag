@@ -57,8 +57,8 @@ public class KnowledgeRetrievalTool implements BiFunction<KnowledgeRetrievalTool
 
 	private final SimpleVectorStore vectorStore;
 
-	@Value("${rag.knowledge.sources}")
-	private List<String> knowledgeSourceUrls;
+//	@Value("${rag.knowledge.sources}")
+	private List<String> knowledgeSourceUrls = List.of("https://www.baidu.com");
 
 	public KnowledgeRetrievalTool(EmbeddingModel embeddingModel) {
 		this.vectorStore = SimpleVectorStore.builder(embeddingModel).build();

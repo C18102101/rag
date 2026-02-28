@@ -17,6 +17,7 @@ package com.cloud.alibaba.ai.example.agent.rag;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
 
 /**
  * RAG Agent Example Application

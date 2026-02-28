@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(nc -zv 59.110.45.189 9092 2>&1 || echo \"Connection failed\")",
+      "Bash(nc -zv 59.110.45.189 9092 2>&1)"
+    ]
+  }
+}

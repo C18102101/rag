@@ -9,11 +9,23 @@ spring:
       api-key: ${DASHSCOPE_API_KEY:your-dashscope-api-key}
   thymeleaf:
     cache: false
+  datasource:
+    url: jdbc:mysql://59.110.45.189:3306/PaiSmart?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
 
 logging:
   level:
     com.cloud.alibaba.ai.example: DEBUG
     com.alibaba.cloud.ai.graph: DEBUG
+
+minio:
+  endpoint: http://59.110.45.189:9000
+  accessKey: minioadmin
+  secretKey: minioadmin
+  bucketName: rag
+  publicUrl: http://59.110.45.189:9000
 
 # RAG Agent Configuration
 rag:
