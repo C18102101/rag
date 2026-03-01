@@ -4,16 +4,29 @@ server:
 spring:
   application:
     name: rag-agent-example
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
   ai:
     dashscope:
-      api-key: ${DASHSCOPE_API_KEY:your-dashscope-api-key}
+      api-key: sk-c12921649fe24d8587df7088626b34ff
+    vectorstore:
+      pgvector:
+        dimensions: 1024
+        index-type: hnsw
+        distance-type: cosine_distance
+        initialize-schema: true
   thymeleaf:
     cache: false
   datasource:
-    url: jdbc:mysql://59.110.45.189:3306/PaiSmart?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:postgresql://59.110.45.189:5432/postgres
+    username: postgres
+    password: postgres
+  data:
+    redis:
+      host: 59.110.45.189
+      port: 6379
 
 logging:
   level:

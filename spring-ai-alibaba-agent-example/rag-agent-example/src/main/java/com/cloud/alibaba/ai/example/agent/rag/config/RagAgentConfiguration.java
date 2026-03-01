@@ -18,10 +18,16 @@ package com.cloud.alibaba.ai.example.agent.rag.config;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 import com.alibaba.cloud.ai.graph.checkpoint.savers.MemorySaver;
 import com.alibaba.cloud.ai.graph.exception.GraphStateException;
+import com.cloud.alibaba.ai.example.agent.rag.tool.DocumentSearchTool;
 import com.cloud.alibaba.ai.example.agent.rag.tool.KnowledgeRetrievalTool;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.function.FunctionToolCallback;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.function.Function;
 
 /**
  * Configuration for the RAG Agent
@@ -41,13 +47,25 @@ public class RagAgentConfiguration {
 
 	private final KnowledgeRetrievalTool knowledgeRetrievalTool;
 
-	public RagAgentConfiguration(ChatModel chatModel, KnowledgeRetrievalTool knowledgeRetrievalTool) {
+	private final VectorStore vectorStore;
+
+	public RagAgentConfiguration(ChatModel chatModel, KnowledgeRetrievalTool knowledgeRetrievalTool, VectorStore vectorStore) {
 		this.chatModel = chatModel;
 		this.knowledgeRetrievalTool = knowledgeRetrievalTool;
+		this.vectorStore = vectorStore;
 	}
 
 	@Bean
 	public ReactAgent ragAgent() throws GraphStateException {
+		DocumentSearchTool searchTool = new DocumentSearchTool(vectorStore);
+
+        ToolCallback searchCallback = FunctionToolCallback.builder("search_documents",
+                        (Function<DocumentSearchTool.Request, DocumentSearchTool.Response>)
+                                searchTool::search)
+                .description("搜索文档以查找相关信息")
+                .inputType(DocumentSearchTool.Request.class)
+                .build();
+
 		return ReactAgent.builder()
 			.name("rag-agent")
 			.description("A RAG (Retrieval Augmented Generation) agent that can answer questions "
@@ -56,7 +74,7 @@ public class RagAgentConfiguration {
 					+ "relevant information and synthesizes comprehensive answers.")
 			.model(chatModel)
 			.saver(new MemorySaver())
-			.tools(knowledgeRetrievalTool.toolCallback())
+			.tools(searchCallback)
 			.build();
 	}
 

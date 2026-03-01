@@ -15,16 +15,25 @@
  */
 package com.cloud.alibaba.ai.example.agent.rag.controller;
 
+import com.alibaba.cloud.ai.advisor.RetrievalRerankAdvisor;
 import com.alibaba.cloud.ai.graph.NodeOutput;
 import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.ReactAgent;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.messages.AbstractMessage;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.prompt.SystemPromptTemplate;
+import org.springframework.ai.vectorstore.SearchRequest;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +41,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import reactor.core.publisher.Flux;
 
 import java.util.Map;
 import java.util.UUID;
@@ -50,80 +60,79 @@ import java.util.UUID;
 @RequestMapping("/api/rag")
 public class RagAgentController {
 
-	private static final Logger logger = LoggerFactory.getLogger(RagAgentController.class);
+    private static final Logger logger = LoggerFactory.getLogger(RagAgentController.class);
 
-	private final ReactAgent ragAgent;
+    private final ReactAgent ragAgent;
 
-	public RagAgentController(ReactAgent ragAgent) {
-		this.ragAgent = ragAgent;
-	}
+    public RagAgentController(ReactAgent ragAgent) {
+        this.ragAgent = ragAgent;
+    }
 
-	@GetMapping("/")
-	public String index() {
-		return "index";
-	}
+    @GetMapping("/")
+    public String index() {
+        return "index";
+    }
 
-	@PostMapping("/chat")
-	@ResponseBody
-	public ChatResponse chat(@RequestBody ChatRequest request) {
-		logger.info("Received chat request: {}", request.message());
+    @PostMapping("/chat")
+    @ResponseBody
+    public ChatResponse chat(@RequestBody ChatRequest request) {
+        logger.info("Received chat request: {}", request.message());
 
-		String threadId = request.threadId();
-		if (threadId == null || threadId.isEmpty()) {
-			threadId = UUID.randomUUID().toString();
-		}
+        String threadId = request.threadId();
+        if (threadId == null || threadId.isEmpty()) {
+            threadId = UUID.randomUUID().toString();
+        }
 
-		try {
-			RunnableConfig config = RunnableConfig.builder().threadId(threadId).build();
-			
-			NodeOutput result = ragAgent.invokeAndGetOutput(request.message(), config).orElse(null);
+        try {
+            RunnableConfig config = RunnableConfig.builder().threadId(threadId).build();
 
-			String response = extractResponse(result);
+            NodeOutput result = ragAgent.invokeAndGetOutput(request.message(), config).orElse(null);
 
-			logger.info("Agent response: {}", response);
-			return new ChatResponse(response, threadId, true);
-		}
-		catch (Exception e) {
-			logger.error("Error processing chat request", e);
-			return new ChatResponse("Sorry, an error occurred: " + e.getMessage(), threadId, false);
-		}
-	}
+            String response = extractResponse(result);
 
-	@GetMapping("/chat")
-	@ResponseBody
-	public ChatResponse chatGet(@RequestParam("message") String message,
-			@RequestParam(value = "threadId", required = false) String threadId) {
-		return chat(new ChatRequest(message, threadId));
-	}
+            logger.info("Agent response: {}", response);
+            return new ChatResponse(response, threadId, true);
+        } catch (Exception e) {
+            logger.error("Error processing chat request", e);
+            return new ChatResponse("Sorry, an error occurred: " + e.getMessage(), threadId, false);
+        }
+    }
 
-	private String extractResponse(NodeOutput result) {
-		if (result == null) {
-			return "No response generated.";
-		}
+    @GetMapping("/chat")
+    @ResponseBody
+    public ChatResponse chatGet(@RequestParam("message") String message,
+                                @RequestParam(value = "threadId", required = false) String threadId) {
+        return chat(new ChatRequest(message, threadId));
+    }
 
-		OverAllState state = result.state();
+    private String extractResponse(NodeOutput result) {
+        if (result == null) {
+            return "No response generated.";
+        }
 
-		// Try "output" key first (common for ReactAgent)
-		Optional<Object> output = state.value("output");
-		if (output.isPresent()) {
-			return String.valueOf(output.get());
-		}
+        OverAllState state = result.state();
 
-		// Fallback to "messages" key
-		Optional<List<AbstractMessage>> messages = state.value("messages");
-		if (messages.isPresent() && !messages.get().isEmpty()) {
-			List<AbstractMessage> msgList = messages.get();
-			return msgList.get(msgList.size() - 1).getText();
-		}
+        // Try "output" key first (common for ReactAgent)
+        Optional<Object> output = state.value("output");
+        if (output.isPresent()) {
+            return String.valueOf(output.get());
+        }
 
-		// Last resort: return state string representation
-		return state.toString();
-	}
+        // Fallback to "messages" key
+        Optional<List<AbstractMessage>> messages = state.value("messages");
+        if (messages.isPresent() && !messages.get().isEmpty()) {
+            List<AbstractMessage> msgList = messages.get();
+            return msgList.get(msgList.size() - 1).getText();
+        }
 
-	public record ChatRequest(String message, String threadId) {
-	}
+        // Last resort: return state string representation
+        return state.toString();
+    }
 
-	public record ChatResponse(String response, String threadId, boolean success) {
-	}
+    public record ChatRequest(String message, String threadId) {
+    }
+
+    public record ChatResponse(String response, String threadId, boolean success) {
+    }
 
 }
